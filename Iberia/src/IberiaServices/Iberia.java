@@ -19,28 +19,32 @@ public class Iberia extends Thread{
 	private static String DELIMITER = "#";
 	
 	private DataInputStream in;
-	private ObjectOutputStream out;
+	private DataOutputStream out;
 	private Socket tcpSocket;
 
 	
-	private FlightAssambler flightAssambler; 
+	//private FlightAssambler flightAssambler; 
+	private String flight; 
 	
 	private List<Flight> defaultFlights = new ArrayList<>();
 
-	private List<Flight> selectedFlights;
+	//private List<Flight> selectedFlights;
 	
-	private List<FlightDTO> selectedFlightsDTO;
+	//private List<FlightDTO> selectedFlightsDTO;
 	
 	Flight f1 = new Flight(1111, "12-02-2020", "12-02-2020", "13:00", "11:30", "Madrid", "London", "Iberia");
 	Flight f2 = new Flight(1112, "12-02-2020", "12-02-2020", "16:30", "14:00", "London", "Madrid", "Iberia");
 	
+
+
+			
 	public Iberia(Socket socket) {
 		defaultFlights.add(f1);
 		defaultFlights.add(f2);
 		try {
 			this.tcpSocket = socket;
 		    this.in = new DataInputStream(socket.getInputStream());
-			this.out = new ObjectOutputStream(socket.getOutputStream());
+			this.out = new DataOutputStream(socket.getOutputStream());
 			this.start();
 		} catch (IOException e) {
 			System.err.println("# Iberia - TCPConnection IO error:" + e.getMessage());
@@ -50,9 +54,12 @@ public class Iberia extends Thread{
 	public void run() {
 		try {
 			String pattern = this.in.readUTF();			
-			selectedFlightsDTO = this.selectFlights(pattern);
-			
-			this.out.writeObject(selectedFlightsDTO);					
+			//selectedFlightsDTO = this.selectFlights(pattern);
+			flight = this.selectFlights(pattern); 
+			if (flight!= null)
+			{
+				this.out.writeUTF(flight);					
+			}
 		} catch (EOFException e) {
 		} catch (IOException e) {
 		} finally {
@@ -63,9 +70,9 @@ public class Iberia extends Thread{
 		}
 	}
 	
-	public List<FlightDTO> selectFlights(String pattern){
-		selectedFlights = new ArrayList<>(); 
-		selectedFlightsDTO = new ArrayList<>(); 
+	public String selectFlights(String pattern){
+		//selectedFlights = new ArrayList<>(); 
+		//selectedFlightsDTO = new ArrayList<>(); 
 		
 		if (pattern != null && !pattern.trim().isEmpty()) {
 			try {
@@ -73,12 +80,17 @@ public class Iberia extends Thread{
 				String depAirport = tokenizer.nextToken();
 				String arrivalAirport = tokenizer.nextToken();
 				String depDate = tokenizer.nextToken();
+				//System.out.println(depAirport);
+				//System.out.println(arrivalAirport);
+				//System.out.println(depDate);
 
 				for (Flight dflight : defaultFlights) {
 					
-					if (dflight.getArrivalAirport().compareTo(arrivalAirport) == 0 && dflight.getDepAirport().compareTo(depAirport) == 0 && dflight.getDepDate().compareTo(depDate)== 0) {
+					if (dflight.getArrivalAirport().equals(arrivalAirport) && dflight.getDepAirport().equals(depAirport) && dflight.getDepDate().equals(depDate)) {
 						
-						selectedFlights.add(dflight); 	
+						flight = dflight.getFlightID() + "#" +dflight.getAirline()+"#"+ dflight.getArrivalDate()+"#"+ 
+						dflight.getDepDate()+"#"+ dflight.getArrivalTime()+"#"+dflight.getDepTime()+"#"+dflight.getDepAirport()+"#"+dflight.getArrivalAirport(); 
+						System.out.println(flight);
 					}	
 				}
 				
@@ -87,9 +99,9 @@ public class Iberia extends Thread{
 			}
 		}
 		
-		selectedFlightsDTO = flightAssambler.assemble(selectedFlights); 
+		//selectedFlightsDTO = flightAssambler.assemble(selectedFlights); 
 		
-		return selectedFlightsDTO; 
+		return flight; 
 	}
 
 
